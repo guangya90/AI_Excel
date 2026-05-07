@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+
+export const runtime = "nodejs";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { TEMP_ZONES, orderRowSchema } from "@/lib/order-types";

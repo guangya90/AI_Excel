@@ -4,9 +4,9 @@ generator client {
 
 datasource db {
   provider  = "postgresql"
-  /// 应用运行时连接（Supabase 等：使用 Pooler + `pgbouncer=true`）
+  /// 应用运行时：Neon 用 `-pooler` 池化串；Supabase 用 `6543` + `pgbouncer=true`
   url       = env("DATABASE_URL")
-  /// `prisma migrate` / `db push` 等使用的直连（避开 PgBouncer 限制）
+  /// migrate / db push：Neon 用非池化主机；Supabase 用 `5432` 直连串
   directUrl = env("DIRECT_URL")
 }
 

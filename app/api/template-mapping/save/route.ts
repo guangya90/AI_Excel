@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+
+export const runtime = "nodejs";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { ORDER_FIELD_KEYS, type OrderFieldKey } from "@/lib/order-types";
