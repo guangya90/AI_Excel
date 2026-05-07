@@ -1,0 +1,44 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Order {
+  id              String   @id @default(cuid())
+  batchId         String   @map("batch_id")
+  externalCode    String?  @map("external_code")
+  senderName      String   @map("sender_name")
+  senderPhone     String   @map("sender_phone")
+  senderAddress   String   @map("sender_address")
+  receiverName    String   @map("receiver_name")
+  receiverPhone   String   @map("receiver_phone")
+  receiverAddress String   @map("receiver_address")
+  weightKg        Decimal  @map("weight_kg") @db.Decimal(12, 3)
+  pieceCount      Int      @map("piece_count")
+  tempZone        String   @map("temp_zone")
+  remark          String?  @db.Text
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  @@index([externalCode])
+  @@index([receiverName])
+  @@index([createdAt])
+  @@map("orders")
+}
+
+/// Learned column → field mapping for recurring templates (keyed by header signature).
+model TemplateMapping {
+  id             String   @id @default(cuid())
+  headerSignature String  @unique @map("header_signature")
+  /// 0-based sheet row index used as header
+  headerRowIndex Int      @default(0) @map("header_row_index")
+  /// JSON: Record<OrderFieldKey, string> Excel column header text
+  fieldToColumn  Json     @map("field_to_column")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  @@map("template_mappings")
+}
