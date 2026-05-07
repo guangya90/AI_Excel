@@ -49,6 +49,7 @@ export function ImportFlow() {
     list: [],
     duplicateExternalRows: new Map(),
   });
+  const [remoteChecking, setRemoteChecking] = useState(false);
 
   const validationTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -78,10 +79,12 @@ export function ImportFlow() {
       .filter((p) => p.code.length > 0);
 
     if (pairs.length === 0) {
+      setRemoteChecking(false);
       setValidation(base);
       return;
     }
 
+    setRemoteChecking(true);
     try {
       const res = await fetch("/api/orders/check-externals", {
         method: "POST",
@@ -102,6 +105,8 @@ export function ImportFlow() {
       setValidation(mergeDbExternalDuplicateMessages(base, m));
     } catch {
       setValidation(base);
+    } finally {
+      setRemoteChecking(false);
     }
   }, []);
 
@@ -212,6 +217,7 @@ export function ImportFlow() {
       }
 
       const built = buildDraftRowsFromMatrix(detected.dataRows, detected.headers, nextMap);
+      setImportLabel(`已解析 ${built.length || 1} 行`);
       setRows(built.length ? built : [emptyDraftRow()]);
       setStep("preview");
       void runValidation(built.length ? built : [emptyDraftRow()]);
@@ -371,7 +377,7 @@ export function ImportFlow() {
         </div>
         {importPct > 0 ? (
           <div className="mt-4">
-            <ProgressBar value={importPct} label={importLabel} />
+            <ProgressBar value={importPct} label="导入进度" subLabel={importLabel} />
           </div>
         ) : null}
       </section>
@@ -431,9 +437,13 @@ export function ImportFlow() {
                 ))}
               </ul>
             </div>
+          ) : remoteChecking ? (
+            <div className="rounded-xl border border-slate-700 bg-slate-900/50 px-3 py-2 text-xs text-slate-300">
+              正在与数据库比对外部编码…
+            </div>
           ) : (
             <div className="rounded-xl border border-emerald-900/40 bg-emerald-950/20 px-3 py-2 text-xs text-emerald-200">
-              当前批次校验通过（仍会与历史运单比对外部编码重复）。
+              当前批次校验通过（已与历史运单比对外部编码）。
             </div>
           )}
 
@@ -447,7 +457,9 @@ export function ImportFlow() {
 
           <div className="space-y-3 rounded-xl border border-slate-700 bg-slate-900/40 p-4">
             <h3 className="text-sm font-medium text-white">3. 提交到数据库</h3>
-            {submitPct > 0 ? <ProgressBar value={submitPct} label={submitLabel} /> : null}
+            {submitPct > 0 ? (
+              <ProgressBar value={submitPct} label="提交进度" subLabel={submitLabel} />
+            ) : null}
             <button
               type="button"
               disabled={submitting || busy || hasErrors || rows.length === 0}
