@@ -5,14 +5,16 @@ Next.js 14（App Router）+ TypeScript + Prisma + PostgreSQL（Neon / Supabase /
 ## 本地开发
 
 1. 安装依赖：`npm install`
-2. 复制环境变量：将 `.env.example` 复制为 `.env`，填入 `DATABASE_URL`（PostgreSQL 连接串）。
+2. 复制环境变量：将 `.env.example` 复制为 `.env`。
+   - **Supabase**：同时配置 `DATABASE_URL`（Pooler `6543` + `pgbouncer=true`）与 `DIRECT_URL`（`5432` 直连），密码见项目 **Settings → Database**。
+   - **仅一条连接串的环境**：可将 `DIRECT_URL` 设为与 `DATABASE_URL` 相同。
 3. 同步数据库结构：`npx prisma db push`
 4. 启动：`npm run dev`
 
 ## 部署到 Vercel
 
 1. 在 [Vercel](https://vercel.com) 导入本仓库（或连接 Git 提供商）。
-2. 在 Vercel 项目 **Environment Variables** 中设置 `DATABASE_URL`（建议在 Vercel Marketplace 集成 **Neon** 或 **Supabase** 自动生成）。
+2. 在 Vercel **Environment Variables** 中设置 `DATABASE_URL` 与 `DIRECT_URL`（Supabase 需两条；其他托管若只有一条，可两者填同一值）。
 3. **Build Command** 保持默认 `npm run build`（已包含 `prisma generate`）。
 4. 首次部署后，对目标数据库执行一次结构同步（任选其一）：
    - 本地指向同一数据库：`npx prisma db push`
