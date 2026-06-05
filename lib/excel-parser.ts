@@ -54,9 +54,9 @@ export async function parseExcelFile(
       const rowCells: CellValue[] = [];
       const matrixRow: (string | number | undefined)[] = [];
       for (let c = 0; c < maxCols; c++) {
-        const val = rawRow[c];
+        const val = rawRow[c] as string | number | undefined;
         const strVal = val === undefined || val === null ? "" : String(val).trim();
-        rowCells.push({ value: val, row: r, col: c, colName: `col_${c}` });
+        rowCells.push({ value: val as string | number, row: r, col: c, colName: `col_${c}` });
         matrixRow.push(strVal);
       }
       allRows.push(rowCells);
