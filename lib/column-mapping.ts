@@ -130,8 +130,8 @@ export function matchFieldForHeader(header: string, field: OrderFieldKey): numbe
 // ============================================================
 
 export interface ColumnAnalysis {
-  headerMapping: Partial<Record<string, { col: string; score: number }>>;
-  detailMapping: Partial<Record<string, { col: string; score: number }>>;
+  headerMapping: Record<string, { col: string; score: number }>;
+  detailMapping: Record<string, { col: string; score: number }>;
   unmatched: string[];
   missingRequired: string[];
 }
@@ -184,10 +184,10 @@ export function autoMapColumns(rawHeaders: string[]): {
   const analysis = analyzeColumns(rawHeaders);
   return {
     headerMapping: Object.fromEntries(
-      Object.entries(analysis.headerMapping).filter(([, v]) => v != null).map(([k, v]) => [k, v!.col]),
+      Object.entries(analysis.headerMapping).map(([k, v]) => [k, v.col]),
     ),
     detailMapping: Object.fromEntries(
-      Object.entries(analysis.detailMapping).filter(([, v]) => v != null).map(([k, v]) => [k, v!.col]),
+      Object.entries(analysis.detailMapping).map(([k, v]) => [k, v.col]),
     ),
     columnAnalysis: analysis,
     missingRequired: analysis.missingRequired,
