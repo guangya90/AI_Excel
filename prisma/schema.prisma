@@ -10,38 +10,62 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-model Order {
-  id              String   @id @default(cuid())
-  batchId         String   @map("batch_id")
-  externalCode    String?  @map("external_code")
-  senderName      String   @map("sender_name")
-  senderPhone     String   @map("sender_phone")
-  senderAddress   String   @map("sender_address")
-  receiverName    String   @map("receiver_name")
-  receiverPhone   String   @map("receiver_phone")
-  receiverAddress String   @map("receiver_address")
-  weightKg        Decimal  @map("weight_kg") @db.Decimal(12, 3)
-  pieceCount      Int      @map("piece_count")
-  tempZone        String   @map("temp_zone")
-  remark          String?  @db.Text
-  createdAt       DateTime @default(now()) @map("created_at")
+/// 订单头表（5项必填：外部编码、收货门店、收件人姓名、收件人电话、收件人地址）
+model OrderHeader {
+  id              String        @id @default(cuid())
+  batchId         String        @map("batch_id")
+  externalCode    String        @map("external_code")
+  receiverStore   String        @map("receiver_store")
+  receiverName    String        @map("receiver_name")
+  receiverPhone   String        @map("receiver_phone")
+  receiverAddress String        @map("receiver_address")
+  remark          String?       @db.Text
+  createdAt       DateTime      @default(now()) @map("created_at")
+  details         OrderDetail[]
 
   @@index([externalCode])
-  @@index([receiverName])
+  @@index([batchId])
   @@index([createdAt])
-  @@map("orders")
+  @@map("order_headers")
 }
 
-/// Learned column → field mapping for recurring templates (keyed by header signature).
-model TemplateMapping {
-  id             String   @id @default(cuid())
-  headerSignature String  @unique @map("header_signature")
-  /// 0-based sheet row index used as header
-  headerRowIndex Int      @default(0) @map("header_row_index")
-  /// JSON: Record<OrderFieldKey, string> Excel column header text
-  fieldToColumn  Json     @map("field_to_column")
-  createdAt      DateTime @default(now()) @map("created_at")
-  updatedAt      DateTime @updatedAt @map("updated_at")
+/// 订单明细表（SKU编码/名称/数量/规格）
+model OrderDetail {
+  id        String      @id @default(cuid())
+  headerId  String      @map("header_id")
+  header    OrderHeader @relation(fields: [headerId], references: [id], onDelete: Cascade)
+  skuCode   String?     @map("sku_code")
+  skuName   String?     @map("sku_name")
+  skuQty    Int?        @map("sku_qty")
+  skuSpec   String?     @map("sku_spec")
+  createdAt DateTime    @default(now()) @map("created_at")
 
-  @@map("template_mappings")
+  @@index([headerId])
+  @@map("order_details")
+}
+
+/// 应用设置（Key-Value存储，如API Key等）
+model AppSetting {
+  key        String   @id
+  value      String   @db.Text
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  @@map("app_settings")
+}
+
+/// 通用解析规则配置（替代旧 TemplateMapping 的硬编码方式）
+model ParseRule {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  /// 适用格式：xlsx / xls / docx / pdf
+  fileFormat  String
+  /// 完整 ParseRuleConfig JSON（区域/列映射/变换/尾部/默认值/AI元数据）
+  config      Json
+  /// 规则签名（sha256，用于去重）
+  signature   String?  @unique
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt  @map("updated_at")
+
+  @@map("parse_rules")
 }

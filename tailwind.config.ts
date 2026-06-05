@@ -9,14 +9,11 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        surface: {
-          DEFAULT: "#0f1419",
-          card: "#1a2332",
-          border: "#2d3a4d",
-        },
-        accent: {
-          DEFAULT: "#3b82f6",
-          muted: "#60a5fa",
+        primary: {
+          DEFAULT: "#0fc6c2",
+          dark: "#0bada9",
+          light: "#e8fafa",
+          muted: "#b5e8e8",
         },
       },
     },

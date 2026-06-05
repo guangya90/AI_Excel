@@ -1,148 +1,150 @@
 "use client";
 
-import { useMemo } from "react";
-import type { OrderFieldKey, OrderRowDraft } from "@/lib/order-types";
-import { FIELD_LABELS, ORDER_FIELD_KEYS } from "@/lib/order-types";
+import { useState, useMemo } from "react";
+import type { HeaderFieldKey, DetailFieldKey, OrderGroup, HeaderDraft, DetailDraft } from "@/lib/order-types";
+import { HEADER_FIELD_KEYS, DETAIL_FIELD_KEYS, FIELD_LABELS } from "@/lib/order-types";
 
 type OrdersGridProps = {
-  rows: OrderRowDraft[];
+  groups: OrderGroup[];
   rowFieldErrors: Map<string, string>;
-  onChange: (rowIndex: number, field: OrderFieldKey, value: string) => void;
-  onDeleteRow: (rowIndex: number) => void;
-  onAddRow: () => void;
+  onUpdateHeader: (groupIndex: number, field: HeaderFieldKey, value: string) => void;
+  onUpdateDetail: (groupIndex: number, detailIndex: number, field: DetailFieldKey, value: string) => void;
+  onAddDetail: (groupIndex: number) => void;
+  onDeleteDetail: (groupIndex: number, detailIndex: number) => void;
+  onAddGroup: () => void;
+  onDeleteGroup: (groupIndex: number) => void;
 };
 
-const COL_WIDTH: Record<OrderFieldKey, string> = {
-  externalCode: "min-w-[100px]",
-  senderName: "min-w-[100px]",
-  senderPhone: "min-w-[110px]",
-  senderAddress: "min-w-[180px]",
-  receiverName: "min-w-[100px]",
-  receiverPhone: "min-w-[110px]",
-  receiverAddress: "min-w-[180px]",
-  weightKg: "min-w-[72px]",
-  pieceCount: "min-w-[64px]",
-  tempZone: "min-w-[80px]",
-  remark: "min-w-[140px]",
-};
-
-function errKey(rowDisplay: number, field: OrderFieldKey): string {
-  return `${rowDisplay}\u0000${field}`;
+function errKey(displayRow: number, field: string): string {
+  return `${displayRow}\u0000${field}`;
 }
 
-export function OrdersGrid({
-  rows,
-  rowFieldErrors,
-  onChange,
-  onDeleteRow,
-  onAddRow,
-}: OrdersGridProps) {
-  const fields = ORDER_FIELD_KEYS;
+export function OrdersGrid({ groups, rowFieldErrors, onUpdateHeader, onUpdateDetail, onAddDetail, onDeleteDetail, onAddGroup, onDeleteGroup }: OrdersGridProps) {
+  const [collapsed, setCollapsed] = useState<Set<number>>(new Set());
 
-  const summary = useMemo(() => {
-    const errs = rowFieldErrors.size;
-    return `${rows.length} 行 · ${errs > 0 ? `${errs} 个单元格待修正` : "校验通过"}`;
-  }, [rowFieldErrors.size, rows.length]);
-
-  const focusAt = (rowIndex: number, fieldIndex: number) => {
-    const el = document.getElementById(`cell-${rowIndex}-${fieldIndex}`)?.querySelector("input");
-    (el as HTMLInputElement | undefined)?.focus();
+  const toggle = (gi: number) => {
+    setCollapsed((prev) => { const next = new Set(prev); if (next.has(gi)) next.delete(gi); else next.add(gi); return next; });
   };
 
+  const summary = useMemo(() => {
+    const detailCount = groups.reduce((s, g) => s + g.details.length, 0);
+    const errCount = rowFieldErrors.size;
+    return `${groups.length} 组 · ${detailCount} 条明细 · ${errCount > 0 ? `${errCount} 个错误` : "校验通过"}`;
+  }, [groups, rowFieldErrors.size]);
+
   return (
-    <div className="space-y-2">
-      <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-slate-400">
-        <span>{summary}</span>
-        <button
-          type="button"
-          onClick={onAddRow}
-          className="rounded-lg border border-slate-600 px-3 py-1.5 text-slate-100 hover:bg-slate-800"
-        >
-          新增空行
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-gray-500">
+        <span className="font-medium">{summary}</span>
+        <button onClick={onAddGroup}
+          className="rounded-lg border border-gray-200 px-3 py-1.5 text-gray-600 hover:bg-gray-50 hover:border-[#0fc6c2] transition text-sm">
+          + 新增订单组
         </button>
       </div>
-      <div className="overflow-x-auto rounded-xl border border-slate-700 bg-slate-950/50">
-        <div className="max-h-[min(560px,70vh)] overflow-auto">
-          <table className="min-w-max w-full border-collapse text-left text-xs">
-            <thead className="sticky top-0 z-20 bg-slate-900 shadow-md">
-              <tr className="border-b border-slate-700">
-                <th className="sticky left-0 z-30 bg-slate-900 px-2 py-2 text-slate-400">#</th>
-                {fields.map((f) => (
-                  <th
-                    key={f}
-                    className={`whitespace-nowrap px-2 py-2 font-medium text-slate-200 ${COL_WIDTH[f]}`}
-                  >
-                    {FIELD_LABELS[f]}
-                  </th>
-                ))}
-                <th className="sticky right-0 z-30 min-w-[64px] bg-slate-900 px-2 py-2 text-slate-400">
-                  操作
-                </th>
-              </tr>
-            </thead>
-            <tbody className="text-slate-100">
-              {rows.length === 0 ? (
-                <tr>
-                  <td colSpan={fields.length + 2} className="p-6 text-center text-slate-500">
-                    暂无数据，请返回上传或新增空行。
-                  </td>
-                </tr>
-              ) : (
-                rows.map((row, rowIndex) => {
-                  const displayRow = rowIndex + 1;
-                  return (
-                    <tr
-                      key={rowIndex}
-                      className="border-b border-slate-800 [content-visibility:auto] [contain-intrinsic-size:40px]"
-                    >
-                      <td className="sticky left-0 z-10 bg-slate-950/95 px-2 text-slate-500">{displayRow}</td>
-                      {fields.map((field, fi) => {
-                        const ek = errKey(displayRow, field);
+
+      {groups.length === 0 ? (
+        <div className="rounded-xl border border-gray-200 bg-white p-10 text-center text-gray-400">
+          <svg className="w-10 h-10 text-gray-200 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+          </svg>
+          暂无数据，请配置规则后生成预览。
+        </div>
+      ) : (
+        <div className="space-y-3 max-h-[min(800px,75vh)] overflow-y-auto pr-1">
+          {groups.map((group, gi) => {
+            const isOpen = !collapsed.has(gi);
+            const displayGroup = gi + 1;
+            return (
+              <div key={group.id} className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+                {/* 头表信息行 */}
+                <div className={`p-3 flex items-center justify-between cursor-pointer transition ${isOpen ? "bg-[#e8fafa]/50" : "bg-gray-50"}`}
+                  onClick={() => toggle(gi)}>
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs text-[#0fc6c2] transition-transform" style={{ transform: isOpen ? "rotate(90deg)" : "" }}>▶</span>
+                    <span className="text-xs font-semibold text-gray-700">第 {displayGroup} 组</span>
+                    <span className="text-xs text-gray-400 ml-1">{HEADER_FIELD_KEYS.map((k) => {
+                      const val = group.header[k]?.trim(); return val ? <span key={k} className="mr-3">{FIELD_LABELS[k]}: {val}</span> : null;
+                    })}</span>
+                    <span className="px-1.5 py-0.5 bg-[#0fc6c2]/10 text-[#0fc6c2] text-[10px] rounded-full">{group.details.length} 条明细</span>
+                  </div>
+                  <button onClick={(e) => { e.stopPropagation(); onDeleteGroup(gi); }}
+                    className="text-xs text-red-400 hover:text-red-500 px-2 py-1 rounded hover:bg-red-50">删除整组</button>
+                </div>
+
+                {isOpen && (
+                  <div className="p-3 space-y-3 border-t border-gray-100">
+                    {/* 头表字段编辑 */}
+                    <div className="grid grid-cols-3 gap-2">
+                      {HEADER_FIELD_KEYS.map((field) => {
+                        const ek = errKey(displayGroup, field);
                         const err = rowFieldErrors.get(ek);
-                        const ring = err ? "ring-1 ring-red-500/80" : "";
                         return (
-                          <td key={field} className={`p-0.5 ${COL_WIDTH[field]}`} title={err ?? undefined}>
-                            <div id={`cell-${rowIndex}-${fi}`}>
-                              <input
-                                className={`h-8 w-full rounded border border-slate-700 bg-slate-900/80 px-1.5 text-xs outline-none focus:border-accent ${ring}`}
-                                value={row[field]}
-                                aria-invalid={Boolean(err)}
-                                onChange={(e) => onChange(rowIndex, field, e.target.value)}
-                                onKeyDown={(e) => {
-                                  if (e.key === "Tab") {
-                                    e.preventDefault();
-                                    const next = fi + (e.shiftKey ? -1 : 1);
-                                    if (next >= 0 && next < fields.length) focusAt(rowIndex, next);
-                                    else if (next >= fields.length && rowIndex + 1 < rows.length)
-                                      focusAt(rowIndex + 1, 0);
-                                    else if (next < 0 && rowIndex > 0) focusAt(rowIndex - 1, fields.length - 1);
-                                  } else if (e.key === "Enter") {
-                                    e.preventDefault();
-                                    if (rowIndex + 1 < rows.length) focusAt(rowIndex + 1, fi);
-                                  }
-                                }}
-                              />
-                            </div>
-                          </td>
+                          <div key={field} className="flex items-center gap-1">
+                            <label className="text-[10px] text-gray-500 w-16 shrink-0">{FIELD_LABELS[field]}</label>
+                            <input value={group.header[field]} onChange={(e) => onUpdateHeader(gi, field, e.target.value)}
+                              className={`flex-1 h-7 px-2 border rounded text-xs outline-none transition ${
+                                err ? "border-red-300 bg-red-50" : "border-gray-200 hover:border-gray-300 focus:border-[#0fc6c2] focus:ring-1 focus:ring-[#0fc6c2]/30"}`} />
+                          </div>
                         );
                       })}
-                      <td className="sticky right-0 z-10 bg-slate-950/95 px-1 text-right">
-                        <button
-                          type="button"
-                          className="rounded px-2 py-1 text-red-400 hover:bg-red-500/10"
-                          onClick={() => onDeleteRow(rowIndex)}
-                        >
-                          删除
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
+                    </div>
+
+                    {/* 明细表格 */}
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-medium text-gray-600">明细数据</span>
+                        <button onClick={() => onAddDetail(gi)}
+                          className="text-xs text-[#0fc6c2] hover:underline">+ 添加明细行</button>
+                      </div>
+                      <div className="overflow-x-auto rounded border border-gray-100">
+                        <table className="w-full text-xs">
+                          <thead>
+                            <tr className="bg-gray-50">
+                              <th className="px-2 py-1.5 text-gray-500 font-medium text-left">#</th>
+                              {DETAIL_FIELD_KEYS.map((k) => (
+                                <th key={k} className="px-2 py-1.5 text-gray-500 font-medium text-left">{FIELD_LABELS[k]}
+                                  {["skuCode","skuName","skuQty"].includes(k) && <span className="text-red-400 ml-0.5">*</span>}
+                                </th>
+                              ))}
+                              <th className="px-2 py-1.5 w-16" />
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {group.details.length === 0 ? (
+                              <tr><td colSpan={DETAIL_FIELD_KEYS.length + 2} className="px-3 py-4 text-center text-gray-400">暂无明细</td></tr>
+                            ) : group.details.map((detail, di) => {
+                              const displayRow = displayGroup * 1000 + di + 1;
+                              return (
+                                <tr key={di} className="border-t border-gray-50 hover:bg-gray-50/50">
+                                  <td className="px-2 py-1 text-gray-400">{di + 1}</td>
+                                  {DETAIL_FIELD_KEYS.map((field) => {
+                                    const ek = errKey(displayRow, field);
+                                    const err = rowFieldErrors.get(ek);
+                                    return (
+                                      <td key={field} className="px-1 py-0.5">
+                                        <input value={detail[field]} onChange={(e) => onUpdateDetail(gi, di, field, e.target.value)}
+                                          className={`h-7 w-full px-1.5 border rounded text-xs outline-none ${
+                                            err ? "border-red-300 bg-red-50" : "border-gray-200 hover:border-gray-300 focus:border-[#0fc6c2] focus:ring-1 focus:ring-[#0fc6c2]/30"}`} />
+                                      </td>
+                                    );
+                                  })}
+                                  <td className="px-1">
+                                    <button onClick={() => onDeleteDetail(gi, di)} className="text-red-400 hover:text-red-500 text-xs">删除</button>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
-      </div>
+      )}
     </div>
   );
 }
