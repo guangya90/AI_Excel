@@ -49,7 +49,7 @@ export default function RuleTestPreview({ rule, document, onConfirm }: RuleTestP
         </div>
       </div>
 
-      {!result && <div className="text-center py-8 text-gray-400 text-sm"><p>点击"试解析"查看当前规则的解析结果</p></div>}
+      {!result && <div className="text-center py-8 text-gray-400 text-sm"><p>点击 「试解析」 查看当前规则的解析结果</p></div>}
 
       {result && (
         <>
