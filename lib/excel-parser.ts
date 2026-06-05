@@ -74,7 +74,7 @@ export async function parseExcelFile(
       headers: scan.dataHeaders,
       rows: scan.dataRows.map((dataRow, i) =>
         dataRow.map((v, c) => ({
-          value: (v ?? "") as string | number,
+          value: v,
           row: i,
           col: c,
           colName: `col_${c}`,
@@ -104,7 +104,7 @@ export async function parseExcelFile(
 
 interface SheetScanResult {
   dataHeaders: string[];
-  dataRows: (string | number | undefined)[][];
+  dataRows: (string | number)[][];
   headerKVs: Record<string, string>;
   warnings: string[];
 }
@@ -143,14 +143,14 @@ function fullSheetScan(matrix: (string | number | undefined)[][]): SheetScanResu
   const dataHeaders = (matrix[colHeaderIdx] || []).map((c) => String(c ?? "").trim());
 
   // 6. 数据行 = 列头之后的所有非KV非空行
-  const dataRows: (string | number | undefined)[][] = [];
+  const dataRows: (string | number)[][] = [];
   for (let i = colHeaderIdx + 1; i < matrix.length; i++) {
     const tag = rowTags.find((t) => t.index === i);
     if (tag && (tag.type === "header-kv" || tag.type === "footer-info" || tag.type === "empty")) continue;
     const row = matrix[i];
     if (!Array.isArray(row)) continue;
     if (row.every((c) => String(c ?? "").trim() === "")) continue;
-    dataRows.push(row);
+    dataRows.push(row.map((c) => (c === undefined || c === null ? "" : c) as string | number));
   }
 
   // 7. 将提取到的 KV 映射到系统字段
@@ -203,35 +203,6 @@ function classifyRows(matrix: (string | number | undefined)[][]): RowTag[] {
 // ============================================================
 // 已知字段关键词库（物流行业标准）
 // ============================================================
-
-const KNOWN_KEYWORDS = new Set([
-  // 收货/门店
-  "收货机构", "收货门店", "门店名称", "门店", "店铺", "餐厅", "供货机构", "送货机构", "订货机构",
-  "收货仓库", "发货仓库", "仓库",
-  // 收件人信息
-  "收货人", "收件人", "收货人姓名", "收件人姓名", "联系人", "签收人", "领用人",
-  "收货电话", "收件人电话", "联系电话", "收货人手机号", "手机号", "电话", "手机",
-  "收货地址", "收件人地址", "收货地点", "地址", "配送地址", "详细地址",
-  // 单据
-  "单据号", "配送单号", "运单号", "外部编码", "外部单号", "订单号", "发货单号", "出库单号", "单号",
-  "上游单据", "创建日期", "创建人",
-  // 配送
-  "预计发货日期", "预计到货日期", "期望到货日期", "发货日期",
-  "物流方式", "物流公司", "物流单号", "物流到付",
-  "配送线路", "业务模式", "拆单规则",
-  "配送体积", "配送重量", "配送自定义费用", "配送服务", "配送单类型",
-  // 状态
-  "单据状态", "分拣状态", "复审状态", "运输状态",
-  "是否超时单", "运费重算",
-  "分拣员", "分拣单位", "分拣数量和基准单位换算率",
-  // 车辆
-  "车牌号", "运输司机", "外部司机", "司机电话",
-  // 其他
-  "备注", "说明", "收货人签字", "收货机构备注", "打印次数",
-  "备用联系人", "备用联系电话",
-  "折前单价", "折前金额", "促销折扣", "手动折扣", "折后单价", "折后金额",
-  "物品重量", "物品体积", "发货金额", "成本金额", "合计金额",
-]);
 
 let _keywords: Set<string> | null = null;
 function getKeywords(): Set<string> {
