@@ -464,7 +464,17 @@ export function ImportFlow() {
           {/* AI 面板 */}
           <AIPanel
             fileInfo={fileInfo}
-            detectedColumns={(() => { if (!columnAnalysis) return []; return [...Object.values(columnAnalysis.headerMapping || {}).map(v => v.col), ...Object.values(columnAnalysis.detailMapping || {}).map(v => v.col)]; })()}
+            detectedColumns={(() => {
+              if (!columnAnalysis) return [];
+              const cols: string[] = [];
+              for (const v of Object.values(columnAnalysis.headerMapping || {})) {
+                if (v && v.col) cols.push(v.col);
+              }
+              for (const v of Object.values(columnAnalysis.detailMapping || {})) {
+                if (v && v.col) cols.push(v.col);
+              }
+              return cols;
+            })()}
             onRuleGenerated={onAiRuleGenerated}
           />
 
