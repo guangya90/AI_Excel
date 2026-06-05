@@ -74,7 +74,7 @@ export async function parseExcelFile(
       headers: scan.dataHeaders,
       rows: scan.dataRows.map((dataRow, i) =>
         dataRow.map((v, c) => ({
-          value: v,
+          value: (v ?? "") as string | number,
           row: i,
           col: c,
           colName: `col_${c}`,
