@@ -10,10 +10,15 @@ import type { ParsedDocument, ParsedTable, TextBlock } from "./rule-types";
  */
 export async function parsePdfFile(file: File): Promise<ParsedDocument> {
   const arrayBuffer = await file.arrayBuffer();
+
+  // Vercel/浏览器兼容
+  if (typeof Buffer === "undefined") {
+    throw new Error("PDF 解析需要 Node.js 环境，暂不支持纯浏览器解析。请使用 Excel 或 Word 格式。");
+  }
   const buffer = Buffer.from(arrayBuffer);
 
   // 动态导入 pdf-parse
-  let pdfParse: (buffer: Buffer) => Promise<{
+  let pdfParse: (buf: Buffer) => Promise<{
     text: string;
     numpages: number;
     info: Record<string, unknown>;
