@@ -183,8 +183,12 @@ export function autoMapColumns(rawHeaders: string[]): {
 } {
   const analysis = analyzeColumns(rawHeaders);
   return {
-    headerMapping: Object.fromEntries(Object.entries(analysis.headerMapping).map(([k, v]) => [k, v.col])),
-    detailMapping: Object.fromEntries(Object.entries(analysis.detailMapping).map(([k, v]) => [k, v.col])),
+    headerMapping: Object.fromEntries(
+      Object.entries(analysis.headerMapping).filter(([, v]) => v != null).map(([k, v]) => [k, v!.col]),
+    ),
+    detailMapping: Object.fromEntries(
+      Object.entries(analysis.detailMapping).filter(([, v]) => v != null).map(([k, v]) => [k, v!.col]),
+    ),
     columnAnalysis: analysis,
     missingRequired: analysis.missingRequired,
   };
