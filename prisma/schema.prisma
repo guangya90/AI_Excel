@@ -10,15 +10,15 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-/// 订单头表（5项必填：外部编码、收货门店、收件人姓名、收件人电话、收件人地址）
+/// 订单头表（外部编码/收货门店/收件人信息，A组B组二选一）
 model OrderHeader {
   id              String        @id @default(cuid())
   batchId         String        @map("batch_id")
-  externalCode    String        @map("external_code")
-  receiverStore   String        @map("receiver_store")
-  receiverName    String        @map("receiver_name")
-  receiverPhone   String        @map("receiver_phone")
-  receiverAddress String        @map("receiver_address")
+  externalCode    String?       @map("external_code")
+  receiverStore   String?       @map("receiver_store")
+  receiverName    String?       @map("receiver_name")
+  receiverPhone   String?       @map("receiver_phone")
+  receiverAddress String?       @map("receiver_address")
   remark          String?       @db.Text
   createdAt       DateTime      @default(now()) @map("created_at")
   details         OrderDetail[]
